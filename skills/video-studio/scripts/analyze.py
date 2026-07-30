@@ -143,16 +143,26 @@ def merge(ranges, join_within=0.05):
 
 
 def invert(removals, total, min_keep=0.15):
-    """Turn removal ranges into keep ranges over [0, total]."""
+    """Turn removal ranges into keep ranges over [0, total].
+
+    Every bound is clamped into [0, total]. Without this, a transcript that runs
+    longer than the video — a truncated upload, or `--source` pointing at a
+    different file — silently produces keep ranges past the end of the footage,
+    and the EDL claims a longer output than the input.
+    """
     keeps, cursor = [], 0.0
     for s, e in removals:
-        s, e = max(0.0, s), min(total, e)
+        s = min(max(0.0, s), total)
+        e = min(max(0.0, e), total)
+        if e <= s:
+            continue
         if s > cursor:
             keeps.append((cursor, s))
         cursor = max(cursor, e)
     if cursor < total:
         keeps.append((cursor, total))
-    return [(round(s, 3), round(e, 3)) for s, e in keeps if e - s >= min_keep]
+    return [(round(s, 3), round(e, 3)) for s, e in keeps
+            if e - s >= min_keep and s < total]
 
 
 def main():
@@ -217,6 +227,15 @@ def main():
     if not args.source:
         sys.exit("ERROR: --emit-edl necesita --source <video>")
     total = probe_duration(args.source) or spoken
+
+    if spoken > total + 1.0:
+        print(f"\n*** AVISO: el transcript llega a {spoken/60:.1f} min pero "
+              f"{args.source} dura {total/60:.1f} min.")
+        print("    Casi siempre significa que --source no es el video que se "
+              "transcribio,")
+        print("    o que la subida a la API se corto. Los cortes se limitan a "
+              "la duracion real,")
+        print("    pero revisa esto antes de aprobar el EDL en la Fase 3.")
 
     # Draft removes tier1 noise + stutters + the *excess* of each silence.
     #
