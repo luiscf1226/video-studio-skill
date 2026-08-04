@@ -47,10 +47,48 @@ Each phase reads and writes one project folder, and the pipeline resumes from
 | 4 | Assemble | rough cut | |
 | 5 | Graphics | rendered motion graphics | |
 | 6 | B-roll | downloaded clips, composited | |
+| 6b | *Generative media* | *AI images/video — **optional, costs money*** | *opt-in only* |
 | 7 | Polish | captions, color, music, 9:16 short | ✋ you approve |
 | 8 | Final | render, loudness, validate | |
 
 Already have footage? Run `2 → 3 → 4 → 7 → 8`.
+
+### Phase 6b — generative media (optional)
+
+Everything above is free except transcription. Phase 6b is the one paid step,
+and it never runs unless you ask for it by name.
+
+It exists for what neither free stock nor HTML can produce — **thumbnails, short
+covers, and photographic shots too specific for stock**. It routes to the
+cheapest pay-per-use aggregator that has the model (kie.ai → fal.ai →
+wavespeed), so there is no subscription: you pay per image.
+
+```bash
+python3 skills/video-studio/scripts/genmedia.py --list
+
+python3 skills/video-studio/scripts/genmedia.py \
+  "YouTube thumbnail: laptop showing a dark 3D presentation, amber glow" \
+  --model nano-banana-pro --n 3 --budget 0.30
+```
+
+Four guards keep it from draining an account:
+
+- **`--budget` is checked before every call**, not just at the start. Ask for 20
+  images with a $0.30 cap and it aborts before spending a cent.
+- **Explicit confirmation.** It prints the estimated cost and waits.
+- **Immediate download.** On kie.ai the output URLs expire after 24 hours.
+- **Full log.** Every prompt, model, provider, cost and path lands in
+  `generations.jsonl`, plus an HTML gallery — because you cannot judge an image
+  from a terminal.
+
+Prices live in `references/models.json` and are flagged `verified: true/false`;
+the script warns before spending on an unverified price. Adding a model is a
+JSON edit, not a code change.
+
+**Motion graphics deliberately stay in HyperFrames.** It is free, unlimited, and
+gives exact text, exact timing and exact brand colours — an animated counter
+from 0 to 10 in your own typeface is not something an image model can produce.
+Phase 6b is for photographic work only.
 
 ## How the edit is represented
 
@@ -117,6 +155,7 @@ Every script is standard-library Python that shells out to `ffmpeg`/`ffprobe`/`c
 | `captions.py` | writes `.ass`, optionally burns it. No network |
 | `overlay.py` | composites local assets. No network |
 | `broll.py` | queries Pexels/Pixabay and downloads to `broll/` |
+| `genmedia.py` | **optional, paid** — posts prompts to kie.ai / fal.ai / wavespeed; reads `KIE_API_KEY`, `FAL_KEY`, `WAVESPEED_API_KEY`; enforces a spend cap |
 | `reframe.py`, `render.py` | local ffmpeg only |
 | `fftool.py` | capability detection; no writes |
 

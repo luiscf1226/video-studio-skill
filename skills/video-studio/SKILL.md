@@ -89,8 +89,13 @@ Load **only** the phase file you are running. Do not read all nine.
 | 4 | Assemble | `phases/04-assemble.md` | — |
 | 5 | Motion graphics | `phases/05-graphics.md` | — |
 | 6 | B-roll | `phases/06-broll.md` | — |
+| 6b | Generative media | `phases/06b-generativo.md` | **opt-in only** |
 | 7 | Polish | `phases/07-polish.md` | ✋ approve `check.md` |
 | 8 | Final render | `phases/08-final.md` | — |
+
+Phase 6b is **optional and costs money**. Never run it unless the user asks for
+it by name. Motion graphics stay in HyperFrames (free, exact, unlimited); 6b is
+for thumbnails, short covers, and shots that neither stock nor HTML can produce.
 
 ## Project layout
 
@@ -139,5 +144,6 @@ Run with `python3 scripts/<name>.py --help`. All are dependency-free (stdlib + `
 | `captions.py` | `words.json` + `timemap.json` → word-by-word uppercase `.ass` |
 | `overlay.py` | Composite graphics, b-roll and zooms onto the cut |
 | `broll.py` | Search + download from Pexels/Pixabay |
+| `genmedia.py` | **Optional, paid.** Generate images/video via kie.ai, fal.ai, wavespeed |
 | `reframe.py` | 16:9 → 9:16 for TikTok/Shorts |
 | `render.py` | Final encode, loudness normalize, validate |

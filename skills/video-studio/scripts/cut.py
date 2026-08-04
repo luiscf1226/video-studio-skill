@@ -54,6 +54,10 @@ def main():
     ap.add_argument("--outdir", default="build")
     ap.add_argument("--crf", type=int, default=18)
     ap.add_argument("--preset", default="veryfast")
+    ap.add_argument("--pad-mode", choices=["black", "blur"], default="black",
+                    help="con que rellenar cuando la fuente no es 16:9. "
+                         "'blur' usa una copia desenfocada del propio plano en "
+                         "vez de barras negras (def black)")
     ap.add_argument("--dry-run", action="store_true",
                     help="mostrar el plan sin renderizar")
     args = ap.parse_args()
@@ -103,10 +107,23 @@ def main():
         dur = end - start
         part = parts_dir / f"p{i:04d}.mp4"
         fade_out = max(0.0, dur - FADE)
+        if args.pad_mode == "blur":
+            # Relleno con una copia desenfocada del propio plano. Para material
+            # que no es 16:9, esto se ve intencional; las barras negras se ven
+            # como un error de encuadre.
+            vf = (f"split=2[bg][fg];"
+                  f"[bg]scale={width}:{height}:force_original_aspect_ratio=increase,"
+                  f"crop={width}:{height},boxblur=luma_radius=42:luma_power=2,"
+                  f"eq=brightness=-0.13[bgb];"
+                  f"[fg]scale={width}:{height}:force_original_aspect_ratio=decrease[fgs];"
+                  f"[bgb][fgs]overlay=(W-w)/2:(H-h)/2,setsar=1,fps={fps}")
+        else:
+            vf = (f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+                  f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={fps}")
+
         ffmpeg([
             "-ss", f"{start:.3f}", "-i", str(source), "-t", f"{dur:.3f}",
-            "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
-                   f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={fps}",
+            "-vf", vf,
             "-af", f"afade=t=in:st=0:d={FADE},afade=t=out:st={fade_out:.3f}:d={FADE}",
             "-c:v", "libx264", "-crf", str(args.crf), "-preset", args.preset,
             "-pix_fmt", "yuv420p",

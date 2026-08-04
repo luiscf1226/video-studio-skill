@@ -1,0 +1,120 @@
+{
+  "_comment": [
+    "Catalogo de modelos para genmedia.py. Anadir un modelo = editar este archivo,",
+    "no tocar codigo.",
+    "",
+    "cost_usd es el costo POR UNIDAD (imagen, o segundo de video). El script lo usa",
+    "para estimar antes de gastar y para respetar --budget. Verifica el precio en la",
+    "web del proveedor antes de confiar en una cifra: cambian seguido.",
+    "",
+    "verified: true  -> precio confirmado en la documentacion del proveedor",
+    "verified: false -> estimacion; el script avisa antes de gastar"
+  ],
+
+  "providers": {
+    "kie": {
+      "nombre": "kie.ai",
+      "env": "KIE_API_KEY",
+      "submit": "https://api.kie.ai/api/v1/jobs/createTask",
+      "poll": "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=",
+      "auth": "Bearer",
+      "nota": "El mas barato. A veces tiene problemas de disponibilidad. Las URLs de salida expiran a las 24h."
+    },
+    "fal": {
+      "nombre": "fal.ai",
+      "env": "FAL_KEY",
+      "submit": "https://queue.fal.run/",
+      "poll": "https://queue.fal.run/",
+      "auth": "Key",
+      "nota": "El mas confiable. Catalogo enorme. Unos centavos mas caro que kie."
+    },
+    "wavespeed": {
+      "nombre": "wavespeed.ai",
+      "env": "WAVESPEED_API_KEY",
+      "submit": "https://api.wavespeed.ai/api/v3/",
+      "poll": "https://api.wavespeed.ai/api/v3/predictions/",
+      "auth": "Bearer",
+      "nota": "Para modelos raros que no estan en fal."
+    }
+  },
+
+  "modelos": [
+    {
+      "alias": "gpt-image-2",
+      "tipo": "imagen",
+      "descripcion": "El mejor para EDITAR imagenes y para texto dentro de la imagen. Ideal para miniaturas con titulo.",
+      "opciones": [
+        { "provider": "kie", "id": "gpt-image-2", "cost_usd": 0.05, "verified": true,
+          "input": { "resolution": "2K" } },
+        { "provider": "fal", "id": "fal-ai/gpt-image-2", "cost_usd": 0.19, "verified": false }
+      ]
+    },
+    {
+      "alias": "nano-banana-pro",
+      "tipo": "imagen",
+      "descripcion": "Gemini 3 Pro Image. Muy bueno en composicion y realismo. Buena opcion para miniaturas.",
+      "opciones": [
+        { "provider": "kie", "id": "nano-banana-pro", "cost_usd": 0.14, "verified": false,
+          "input": { "resolution": "2K" } },
+        { "provider": "fal", "id": "fal-ai/nano-banana-pro", "cost_usd": 0.15, "verified": false }
+      ]
+    },
+    {
+      "alias": "nano-banana",
+      "tipo": "imagen",
+      "descripcion": "Gemini image, version rapida y barata. Para explorar variantes antes de gastar en la buena.",
+      "opciones": [
+        { "provider": "kie", "id": "nano-banana", "cost_usd": 0.02, "verified": false },
+        { "provider": "fal", "id": "fal-ai/nano-banana", "cost_usd": 0.039, "verified": false }
+      ]
+    },
+    {
+      "alias": "flux",
+      "tipo": "imagen",
+      "descripcion": "FLUX dev. Barato, buen estilo grafico. Flojo con texto dentro de la imagen.",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/flux/dev", "cost_usd": 0.025, "verified": false }
+      ]
+    },
+    {
+      "alias": "seedream",
+      "tipo": "imagen",
+      "descripcion": "Seedream 4. Fuerte en estetica y en texto en varios idiomas.",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/bytedance/seedream/v4/text-to-image", "cost_usd": 0.03, "verified": false },
+        { "provider": "kie", "id": "seedream-v4", "cost_usd": 0.025, "verified": false }
+      ]
+    },
+
+    {
+      "alias": "kling",
+      "tipo": "video",
+      "descripcion": "Kling 2.5. Imagen a video. El mas solido para animar una imagen fija.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/kling-video/v2.5-turbo/pro/image-to-video", "cost_usd": 0.07, "verified": false },
+        { "provider": "kie", "id": "kling-v2-5-turbo-pro", "cost_usd": 0.05, "verified": false }
+      ]
+    },
+    {
+      "alias": "seedance",
+      "tipo": "video",
+      "descripcion": "Seedance 1 Pro. Rapido y barato para clips cortos de b-roll.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/bytedance/seedance/v1/pro/image-to-video", "cost_usd": 0.06, "verified": false },
+        { "provider": "kie", "id": "seedance-v1-pro", "cost_usd": 0.04, "verified": false }
+      ]
+    },
+    {
+      "alias": "veo",
+      "tipo": "video",
+      "descripcion": "Google Veo 3.1. El de mejor calidad, y el mas caro con diferencia.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/veo3.1", "cost_usd": 0.40, "verified": false },
+        { "provider": "kie", "id": "veo3.1", "cost_usd": 0.30, "verified": false }
+      ]
+    }
+  ]
+}

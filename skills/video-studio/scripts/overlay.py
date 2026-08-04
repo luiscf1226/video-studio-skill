@@ -113,6 +113,11 @@ def build_graph(items, width, height, fps):
             if is_still:
                 inputs.append(["-loop", "1", "-framerate", str(fps),
                                "-t", f"{dur:.3f}", "-i", asset])
+            elif pathlib.Path(asset).suffix.lower() == ".webm":
+                # El decodificador nativo de VP9 DESCARTA el canal alfa: el
+                # overlay se compondria como un rectangulo opaco. libvpx-vp9 si
+                # lo lee, y hay que pedirlo antes del -i.
+                inputs.append(["-c:v", "libvpx-vp9", "-i", asset])
             else:
                 inputs.append(["-i", asset])
 
