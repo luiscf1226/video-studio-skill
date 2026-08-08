@@ -2,13 +2,31 @@
 
 **Meta:** un video corto (15-60s) armado enteramente con IA — sin metraje real —
 para piezas de marca, anuncios, o "sizzle reels" donde no hay nada que grabar.
-**No corre sola.** Solo si el usuario la pide explícitamente, igual que 6b.
+**Opt-in:** solo corre si el usuario la pide explícitamente, igual que 6b —
+esa parte del nombre "fase" es lo único que comparte con el resto del pipeline.
+
+**Independiente del pipeline de 9 fases.** Esto NO es como las fases 0-8: no
+necesita `state.json`, no necesita `init.sh`, no necesita una carpeta de
+proyecto con la estructura de `raw/`/`segments/`/`build/`, y no depende de que
+ninguna otra fase haya corrido antes. Los tres scripts de esta fase
+(`genmedia.py` para generar, `splice_insert.py` para arreglar/extender,
+`upscale.py` para escalar, más `labels_overlay.py` para texto) son
+herramientas de linea de comandos normales: les das archivos, te dan archivos.
+Puedes usarlos:
+
+- **Para armar un video desde cero** — un storyboard, sin grabación, sin
+  proyecto de video-studio de por medio.
+- **Para agregar una escena o arreglar un tramo de un video que ya existe**,
+  sea de este skill, de otro pipeline, o un archivo que alguien te mando.
+- **Uno a la vez, en cualquier orden, sin las demas.** Si solo necesitas
+  `splice_insert.py` para empalmar un clip, usalo solo. No hace falta pasar
+  por generacion, ni por escalado, ni por rotulos, ni por ninguna fase
+  anterior del pipeline.
 
 Distinta de 6b: 6b genera **assets sueltos** (una miniatura, un fondo) para
-insertar en un video ya editado a partir de metraje real. 6c genera **el video
-completo**, escena por escena, con su propio pipeline de ensamblado. Úsala
-cuando no hay `raw/` — el punto de partida es un guion o storyboard, no una
-grabación.
+insertar en un video ya editado a partir de metraje real, dentro del pipeline
+de 9 fases. 6c (y sus scripts) sirven igual de bien sueltos, para cualquier
+video generado o existente, adentro o afuera de este skill.
 
 ## La lección más cara: nunca regeneres la toma completa para arreglar un tramo
 
@@ -30,11 +48,19 @@ Precios completos con notas de "verificado sí/no" viven en
 |---|---|---|---|
 | Toma continua larga, texto a video, narra varias escenas sin cortes | `seedance-2.5` | $0.473/s @720p, $0.2205/s @480p | El único de esta lista pensado para "una sola toma que recorre varias escenas". Tope 720p — escala después si necesitas 1080p. |
 | Video corto de una sola escena, 1080p, sin escalar después | `ltx-fast` | $0.04/s @1080p nativo | Bastante más barato en total que generar 720p + escalar, **si** el estilo te sirve (no probado para look cinematográfico fotorrealista — probar barato antes de comprometerse). |
-| Animar una imagen ya buena (foto, ilustración) | `kling` | ~$0.07/s | Imagen a video, el más sólido para esto. |
+| Animar una imagen ya buena (foto, ilustración) | `kling` (2.5) o `kling-3` | ~$0.07/s · ~$0.11/s | `kling-3` es más nuevo, reportado con mejor calidad a 720p y más caro; ninguno de los dos está verificado en fal.ai directamente. |
 | B-roll corto y desechable | `seedance` (v1, no 2.5) | ~$0.06/s | Imagen a video, rápido y barato. |
+| Explorar barato antes de comprometerte a un modelo caro | `wan`, `hunyuan` | ~$0.05/s · ~$0.075/s | Sin verificar en fal.ai directamente (precios de agregador). Buenos candidatos para una prueba de $0.20-0.30 antes de decidir con qué modelo hacer la toma final. |
+| 1080p nativo, más calidad que `ltx-fast` | `ltx-pro` | ~$0.10/s | Sin verificar; `ltx-fast` SÍ está verificado en fal.ai — probar esa primero. |
 | La mejor calidad posible, presupuesto no es problema | `veo` | ~$0.40/s | El más caro con diferencia; resérvalo para el hero shot final si todo lo demás ya está aprobado. |
 | Escalar cualquier cosa a 1080p después de generarla más barata | `upscale.py` (Topaz) | $0.01-0.02/s de la FUENTE | Casi siempre más barato que generar nativo en alta resolución — genera barato, escala al final. |
 | Música de fondo / SFX | la skill `media-use` si está instalada | **$0** | Catálogo gratis de HeyGen (login OAuth, sin tarjeta). Ver "Audio" más abajo — nunca pagues por esto si esa skill está disponible. |
+
+Catálogo completo (16 modelos a la fecha) en `references/models.json` —
+`genmedia.py --list` lo imprime con precio y si tiene la API key puesta. Cada
+entrada dice `verified: true` solo si el precio viene confirmado directo de
+la página del modelo en fal.ai; todo lo demás es estimación de un agregador
+de terceros y puede estar desactualizado — revísalo antes de una tanda grande.
 
 **Regla práctica de ahorro:** arranca SIEMPRE con una prueba de 4-5s en 480p
 ($1-2) antes de comprometerte a la toma completa en 720p. Un prompt mal
@@ -42,6 +68,13 @@ calibrado a $12 es un prompt mal calibrado a $2 que puedes iterar tres veces
 por el mismo dinero.
 
 ## Flujo
+
+Los pasos de abajo se leen en orden porque asi se armo el proyecto donde nacio
+esta fase, no porque cada uno dependa del anterior. `splice_insert.py`,
+`labels_overlay.py` y `upscale.py` funcionan sobre CUALQUIER archivo de video
+— generado con `genmedia.py`, grabado, descargado, o de otro pipeline
+completamente distinto. Si lo unico que necesitas es empalmar dos clips que ya
+tienes, saltate directo al paso 2 y usa `splice_insert.py` solo.
 
 ### 1. Genera la toma base
 

@@ -23,7 +23,13 @@
     "Audio (musica/SFX): el modelo mas barato de todos no esta aqui -- es $0 via el",
     "catalogo gratis de HeyGen (OAuth free-usage), usado por la skill 'media-use' si la",
     "tienes instalada. Solo genera musica/SFX de pago (minimax-music abajo) si esa",
-    "skill no esta disponible y necesitas algo muy especifico que el catalogo no tenga."
+    "skill no esta disponible y necesitas algo muy especifico que el catalogo no tenga.",
+    "",
+    "Modelos deliberadamente NO incluidos: Hailuo/MiniMax 2.3 cobra un precio FIJO por",
+    "generacion (p.ej. $0.28 por un clip de 6s), no por segundo -- no encaja con el",
+    "campo cost_usd de este catalogo (que genmedia.py multiplica por --seconds para",
+    "video), y forzarlo daria una estimacion de costo incorrecta. Si lo necesitas,",
+    "llamalo a mano, no via genmedia.py, hasta que el script soporte precio fijo."
   ],
 
   "providers": {
@@ -109,6 +115,43 @@
       "opciones": [
         { "provider": "fal", "id": "fal-ai/kling-video/v2.5-turbo/pro/image-to-video", "cost_usd": 0.07, "verified": false },
         { "provider": "kie", "id": "kling-v2-5-turbo-pro", "cost_usd": 0.05, "verified": false }
+      ]
+    },
+    {
+      "alias": "kling-3",
+      "tipo": "video",
+      "descripcion": "Kling 3.0 Turbo. Version mas nueva que 'kling' (2.5), mejor calidad reportada a 720p, tambien mas cara. Precio de agregador de terceros, NO confirmado en fal.ai -- compara ambas antes de comprometerte a una tanda grande.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/kling-video/v3/turbo/image-to-video", "cost_usd": 0.11, "verified": false }
+      ]
+    },
+    {
+      "alias": "wan",
+      "tipo": "video",
+      "descripcion": "Wan 2.5 (Alibaba). Texto o imagen a video, reportado como una opcion barata de buena calidad. Precio de agregador de terceros, NO confirmado en fal.ai.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/wan-25-preview/text-to-video", "cost_usd": 0.05, "verified": false }
+      ]
+    },
+    {
+      "alias": "hunyuan",
+      "tipo": "video",
+      "descripcion": "Hunyuan Video 1.5 (Tencent). Texto a video, 480p. Precio de agregador de terceros, NO confirmado en fal.ai -- de los mas baratos encontrados pero sin verificar resolucion/calidad real para uso cinematografico.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/hunyuan-video-1.5", "cost_usd": 0.075, "verified": false }
+      ]
+    },
+    {
+      "alias": "ltx-pro",
+      "tipo": "video",
+      "descripcion": "LTX Video 2.3 (calidad Pro, no 'fast'). Mas caro que 'ltx-fast' pero reportado con mejor detalle/consistencia. Precio de agregador de terceros, NO confirmado en fal.ai -- 'ltx-fast' SI esta verificado directo en fal.ai, prueba esa primero.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/ltx-2/text-to-video/pro", "cost_usd": 0.10, "verified": false,
+          "input": { "resolution": "1080p" } }
       ]
     },
     {

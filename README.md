@@ -91,10 +91,15 @@ gives exact text, exact timing and exact brand colours — an animated counter
 from 0 to 10 in your own typeface is not something an image model can produce.
 Phase 6b is for photographic work only.
 
-### Phase 6c — fully-generated video (optional)
+### Phase 6c — fully-generated video (optional, standalone)
 
 For when there's no `raw/` at all — a brand or sizzle video built entirely
-from a prompt, no real footage. Full workflow in
+from a prompt, no real footage. **Its scripts don't need the rest of this
+skill.** `genmedia.py`, `splice_insert.py`, `upscale.py` and
+`labels_overlay.py` are plain CLI tools — no `state.json`, no project folder,
+no other phase has to run first. Generate a video from scratch, fix or extend
+a clip you already have (from anywhere, not just this skill), upscale one
+file, or add labels — one script at a time, in any order. Full workflow in
 [`phases/06c-video-generado.md`](skills/video-studio/phases/06c-video-generado.md);
 headline numbers, so you don't have to open it just to pick a model:
 
