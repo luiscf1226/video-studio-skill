@@ -66,7 +66,9 @@ def opciones_ordenadas(cat, modelo):
         prov = cat["providers"][o["provider"]]
         if os.environ.get(prov["env"]):
             listas.append(o)
-        else:
+        elif (o["provider"], prov["env"]) not in sin_key:
+            # un modelo puede listar el mismo proveedor varias veces (p.ej. dos
+            # resoluciones de fal) -- no repetir el mismo "falta exportar X"
             sin_key.append((o["provider"], prov["env"]))
     listas.sort(key=lambda o: o["cost_usd"])
     return listas, sin_key

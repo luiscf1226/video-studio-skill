@@ -7,8 +7,29 @@
     "para estimar antes de gastar y para respetar --budget. Verifica el precio en la",
     "web del proveedor antes de confiar en una cifra: cambian seguido.",
     "",
-    "verified: true  -> precio confirmado en la documentacion del proveedor",
-    "verified: false -> estimacion; el script avisa antes de gastar"
+    "verified: true  -> precio confirmado en la pagina del modelo en fal.ai (o en una",
+    "                   factura real). Los marcados asi en este archivo (seedance-2.5,",
+    "                   ltx-video-fast) se verificaron 2026-08.",
+    "verified: false -> estimacion de un agregador de precios, no de la fuente. El",
+    "                   script avisa antes de gastar",
+    "",
+    "NOTA sobre 1080p: la mayoria de modelos 'video' de aqui no generan 1080p nativo",
+    "(Seedance 2.5 tope es 720p, Kling/Seedance-v1 similar) -- para 1080p hay que sumar",
+    "una pasada de upscale.py (Topaz, $0.01-0.02/s segun destino). LTX Video Fast es la",
+    "excepcion: genera 1080p nativo y sale mas barato que generar-mas-escalar con casi",
+    "cualquier otro modelo de esta lista. Compara el TOTAL (generar + escalar) antes de",
+    "asumir que el $/s mas bajo es el mas barato.",
+    "",
+    "Audio (musica/SFX): el modelo mas barato de todos no esta aqui -- es $0 via el",
+    "catalogo gratis de HeyGen (OAuth free-usage), usado por la skill 'media-use' si la",
+    "tienes instalada. Solo genera musica/SFX de pago (minimax-music abajo) si esa",
+    "skill no esta disponible y necesitas algo muy especifico que el catalogo no tenga.",
+    "",
+    "Modelos deliberadamente NO incluidos: Hailuo/MiniMax 2.3 cobra un precio FIJO por",
+    "generacion (p.ej. $0.28 por un clip de 6s), no por segundo -- no encaja con el",
+    "campo cost_usd de este catalogo (que genmedia.py multiplica por --seconds para",
+    "video), y forzarlo daria una estimacion de costo incorrecta. Si lo necesitas,",
+    "llamalo a mano, no via genmedia.py, hasta que el script soporte precio fijo."
   ],
 
   "providers": {
@@ -97,13 +118,72 @@
       ]
     },
     {
+      "alias": "kling-3",
+      "tipo": "video",
+      "descripcion": "Kling 3.0 Turbo. Version mas nueva que 'kling' (2.5), mejor calidad reportada a 720p, tambien mas cara. Precio de agregador de terceros, NO confirmado en fal.ai -- compara ambas antes de comprometerte a una tanda grande.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/kling-video/v3/turbo/image-to-video", "cost_usd": 0.11, "verified": false }
+      ]
+    },
+    {
+      "alias": "wan",
+      "tipo": "video",
+      "descripcion": "Wan 2.5 (Alibaba). Texto o imagen a video, reportado como una opcion barata de buena calidad. Precio de agregador de terceros, NO confirmado en fal.ai.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/wan-25-preview/text-to-video", "cost_usd": 0.05, "verified": false }
+      ]
+    },
+    {
+      "alias": "hunyuan",
+      "tipo": "video",
+      "descripcion": "Hunyuan Video 1.5 (Tencent). Texto a video, 480p. Precio de agregador de terceros, NO confirmado en fal.ai -- de los mas baratos encontrados pero sin verificar resolucion/calidad real para uso cinematografico.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/hunyuan-video-1.5", "cost_usd": 0.075, "verified": false }
+      ]
+    },
+    {
+      "alias": "ltx-pro",
+      "tipo": "video",
+      "descripcion": "LTX Video 2.3 (calidad Pro, no 'fast'). Mas caro que 'ltx-fast' pero reportado con mejor detalle/consistencia. Precio de agregador de terceros, NO confirmado en fal.ai -- 'ltx-fast' SI esta verificado directo en fal.ai, prueba esa primero.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/ltx-2/text-to-video/pro", "cost_usd": 0.10, "verified": false,
+          "input": { "resolution": "1080p" } }
+      ]
+    },
+    {
       "alias": "seedance",
       "tipo": "video",
-      "descripcion": "Seedance 1 Pro. Rapido y barato para clips cortos de b-roll.",
+      "descripcion": "Seedance 1 Pro. Imagen a video. Rapido y barato para clips cortos de b-roll.",
       "unidad": "segundo",
       "opciones": [
         { "provider": "fal", "id": "fal-ai/bytedance/seedance/v1/pro/image-to-video", "cost_usd": 0.06, "verified": false },
         { "provider": "kie", "id": "seedance-v1-pro", "cost_usd": 0.04, "verified": false }
+      ]
+    },
+    {
+      "alias": "seedance-2.5",
+      "tipo": "video",
+      "descripcion": "Seedance 2.5. Texto a video, toma continua unica (una sola llamada puede narrar varias escenas sin cortes). No genera 1080p nativo -- resolucion maxima 720p, escala despues con upscale.py. Genera audio si se lo pides, gratis en la misma pasada (--generate_audio). NO le mandes imagenes de marca/logos como referencia: el filtro de copyright de ByteDance rechaza el resultado si reconoce una marca (no se cobra el rechazo, pero perdiste el tiempo -- compone la marca despues, con overlay.py, sobre metraje generado abstracto).",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "bytedance/seedance-2.5/text-to-video", "cost_usd": 0.4730, "verified": true,
+          "input": { "resolution": "720p" } },
+        { "provider": "fal", "id": "bytedance/seedance-2.5/text-to-video", "cost_usd": 0.2205, "verified": true,
+          "input": { "resolution": "480p" } }
+      ]
+    },
+    {
+      "alias": "ltx-fast",
+      "tipo": "video",
+      "descripcion": "LTX Video 2.0 Fast. Texto a video, 1080p NATIVO -- no hace falta escalar despues. Para el mismo destino final de 1080p, suele salir bastante mas barato en total que seedance-2.5 (720p) + upscale.py. Duracion 6-20s (mas de 10s pide 25fps+1080p). No probado para el look cinematografico fotorrealista de este proyecto -- probar con un clip corto y barato antes de comprometerse a una toma larga.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/ltx-2/text-to-video/fast", "cost_usd": 0.04, "verified": true,
+          "input": { "resolution": "1080p" } }
       ]
     },
     {
@@ -114,6 +194,24 @@
       "opciones": [
         { "provider": "fal", "id": "fal-ai/veo3.1", "cost_usd": 0.40, "verified": false },
         { "provider": "kie", "id": "veo3.1", "cost_usd": 0.30, "verified": false }
+      ]
+    },
+    {
+      "alias": "topaz-upscale",
+      "tipo": "utilidad",
+      "descripcion": "NO uses genmedia.py para esto -- usa scripts/upscale.py, toma un video de entrada, no un prompt. Precio por segundo de FUENTE (no de salida): $0.01/s hasta 720p, $0.02/s de 720p a 1080p (el caso comun), $0.08/s arriba de 1080p. Se duplica en salida a 60fps, se reduce a la mitad con salida Gaia 2.",
+      "unidad": "segundo",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/topaz/upscale/video", "cost_usd": 0.02, "verified": true }
+      ]
+    },
+    {
+      "alias": "minimax-music",
+      "tipo": "audio",
+      "descripcion": "Generacion de musica de fondo. Usar SOLO si la skill 'media-use' (catalogo gratis de HeyGen) no esta disponible y necesitas algo que ese catalogo no tiene -- el catalogo gratis siempre es la primera opcion para BGM/SFX.",
+      "unidad": "generacion",
+      "opciones": [
+        { "provider": "fal", "id": "fal-ai/minimax-music/v2", "cost_usd": 0.03, "verified": false }
       ]
     }
   ]
