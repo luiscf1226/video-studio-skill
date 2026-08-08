@@ -1,0 +1,161 @@
+# Fase 6c — Video 100% generado (marca / sizzle, OPCIONAL, de pago)
+
+**Meta:** un video corto (15-60s) armado enteramente con IA — sin metraje real —
+para piezas de marca, anuncios, o "sizzle reels" donde no hay nada que grabar.
+**No corre sola.** Solo si el usuario la pide explícitamente, igual que 6b.
+
+Distinta de 6b: 6b genera **assets sueltos** (una miniatura, un fondo) para
+insertar en un video ya editado a partir de metraje real. 6c genera **el video
+completo**, escena por escena, con su propio pipeline de ensamblado. Úsala
+cuando no hay `raw/` — el punto de partida es un guion o storyboard, no una
+grabación.
+
+## La lección más cara: nunca regeneres la toma completa para arreglar un tramo
+
+Un modelo de texto-a-video que narra varias escenas en una sola toma continua
+de 20-30s cuesta $10-15+ por corrida. Si un tramo de 3-4 segundos sale mal
+(una cara rara, un objeto raro, lo que sea), la tentación es volver a correr
+todo el prompt con una palabra cambiada. **No hagas eso.** Genera un clip corto
+e independiente SOLO para ese tramo (unos 4s, a menudo menos de $2), y
+empálmalo con un crossfade usando `splice_insert.py` — ver más abajo. Esto es
+lo que de verdad reduce el gasto en este tipo de proyecto, más que cualquier
+elección de modelo.
+
+## Guía de costos — qué modelo usar y cuándo
+
+Precios completos con notas de "verificado sí/no" viven en
+`references/models.json` (es lo que lee `genmedia.py --list`). Resumen:
+
+| Necesitas | Modelo | Costo | Por qué |
+|---|---|---|---|
+| Toma continua larga, texto a video, narra varias escenas sin cortes | `seedance-2.5` | $0.473/s @720p, $0.2205/s @480p | El único de esta lista pensado para "una sola toma que recorre varias escenas". Tope 720p — escala después si necesitas 1080p. |
+| Video corto de una sola escena, 1080p, sin escalar después | `ltx-fast` | $0.04/s @1080p nativo | Bastante más barato en total que generar 720p + escalar, **si** el estilo te sirve (no probado para look cinematográfico fotorrealista — probar barato antes de comprometerse). |
+| Animar una imagen ya buena (foto, ilustración) | `kling` | ~$0.07/s | Imagen a video, el más sólido para esto. |
+| B-roll corto y desechable | `seedance` (v1, no 2.5) | ~$0.06/s | Imagen a video, rápido y barato. |
+| La mejor calidad posible, presupuesto no es problema | `veo` | ~$0.40/s | El más caro con diferencia; resérvalo para el hero shot final si todo lo demás ya está aprobado. |
+| Escalar cualquier cosa a 1080p después de generarla más barata | `upscale.py` (Topaz) | $0.01-0.02/s de la FUENTE | Casi siempre más barato que generar nativo en alta resolución — genera barato, escala al final. |
+| Música de fondo / SFX | la skill `media-use` si está instalada | **$0** | Catálogo gratis de HeyGen (login OAuth, sin tarjeta). Ver "Audio" más abajo — nunca pagues por esto si esa skill está disponible. |
+
+**Regla práctica de ahorro:** arranca SIEMPRE con una prueba de 4-5s en 480p
+($1-2) antes de comprometerte a la toma completa en 720p. Un prompt mal
+calibrado a $12 es un prompt mal calibrado a $2 que puedes iterar tres veces
+por el mismo dinero.
+
+## Flujo
+
+### 1. Genera la toma base
+
+```bash
+export FAL_KEY='...'
+python3 $SKILL/scripts/genmedia.py \
+  "tu prompt cinematografico completo aqui" \
+  --model seedance-2.5 --seconds 26 --budget 15.00 --outdir generated
+```
+
+Escribe el prompt completo en un archivo de proyecto (no solo en la terminal)
+— lo vas a necesitar de nuevo si algo sale mal y decides regenerar solo un
+tramo con una variante del mismo prompt.
+
+**Nunca mandes logos ni capturas de marca como imagen de referencia** al
+generar. Los filtros de copyright de los modelos (ByteDance, entre otros)
+rechazan la salida si reconocen una marca — no se cobra el rechazo, pero
+perdiste tiempo. Todo lo que necesite ser exacto (logo, texto de UI, colores
+de marca) se compone DESPUÉS, sobre metraje generado que es solo geometría
+abstracta. Ve el punto 3.
+
+### 2. Si un tramo salió mal: clip corto + `splice_insert.py`, no regenerar todo
+
+```bash
+# genera solo el reemplazo (4s, mismo estilo, prompt mas especifico para ese tramo)
+python3 $SKILL/scripts/genmedia.py "..." --model seedance-2.5 --seconds 4 \
+  --budget 2.00 --outdir generated
+
+# empalmalo con un crossfade, reemplazando el tramo malo
+python3 $SKILL/scripts/splice_insert.py \
+  generated/toma-base.mp4 generated/reemplazo.mp4 \
+  --at 3.75 --until 4.35 --crossfade 0.5 \
+  --out generated/toma-arreglada.mp4
+```
+
+El mismo script sirve para **añadir** una escena nueva en vez de reemplazar
+una mala — omite `--until` y el clip se inserta extendiendo la duración total
+en lugar de sustituir un tramo. Lee el docstring de `splice_insert.py` para la
+matemática exacta de duración (por qué el punto de corte y el offset del
+crossfade deben coincidir para que no se repita ni se pierda contenido).
+
+### 3. Compón la marca real encima de la geometría abstracta
+
+Si le pediste al modelo una pantalla de teléfono / laptop como "solo
+geometría abstracta, sin texto, sin logos" (que es lo que hay que pedirle,
+ver punto 1), el resultado tiene un rectángulo o tarjeta en blanco donde debe
+ir tu UI real. Dos formas de resolverlo, de más a menos esfuerzo:
+
+- **Tracking cuadro por cuadro** (OpenCV): detecta la región (color, contraste)
+  en cada frame, sigue su movimiento/perspectiva, deforma tu captura de
+  pantalla real dentro de esa región. Esto es trabajo a medida por proyecto —
+  no hay un script genérico aquí porque la heurística de detección cambia
+  según qué tan predecible sea la escena (una pantalla fija es fácil; una
+  pantalla que gira en 3D con la mano es mucho más trabajo). Si tu escena es
+  razonablemente estable, esto vale la pena: el resultado es indistinguible
+  de metraje real con tu marca.
+- **Tarjeta final compuesta** (`overlay.py`, ya en este skill): en vez de
+  intentar que la marca aparezca DENTRO de la toma generada, la toma generada
+  termina en un plano neutro (por ejemplo, la cámara entra a la pantalla hasta
+  que todo el cuadro es un color sólido), y ahí empalmas un cierre 100%
+  compuesto con tus assets reales — logo, capturas, texto — sin nada generado
+  de por medio. Mucho menos trabajo, y es donde SÍ importa que el texto/logo
+  salga exacto.
+
+### 4. Rótulos en pantalla (año, época, nombre de sección, lo que sea)
+
+```bash
+python3 $SKILL/scripts/labels_overlay.py video.mp4 cues.json --out labeled.mp4
+```
+
+Intenta `drawtext` primero (rápido, con fundido animado); si tu `ffmpeg` no
+trae freetype (común en el `ffmpeg` de Homebrew — mismo problema que impide
+quemar subtítulos, ver Requirements en `SKILL.md`), cae automáticamente a
+componer las etiquetas como PNG y hacer un solo `overlay` — más lento de
+programar pero sigue siendo rápido de renderizar SI compones una vez, nunca
+si encadenas un overlay por etiqueta (encadenar N overlays con fundido tomó
+20+ minutos en un clip de 49s en pruebas reales; la version de un solo pase
+tomó menos de un minuto). El script ya hace esto bien; no lo reimplementes
+peor.
+
+### 5. Audio
+
+Si tienes la skill `media-use` instalada, úsala — su catálogo gratis de
+HeyGen (OAuth, sin tarjeta) da música y SFX reales sin costo, y ya sabe
+mezclar capas (cama musical + SFX por escena) con `ffmpeg`. Es virtualmente
+siempre la opción correcta antes de considerar generación de audio de pago.
+
+Solo si esa skill no está disponible y necesitas algo muy específico que su
+catálogo no tenga, `minimax-music` en `models.json` es la opción de pago más
+barata encontrada (~$0.03/generación) — pero es la excepción, no el punto de
+partida.
+
+### 6. Sube la resolución al final, no al principio
+
+```bash
+python3 $SKILL/scripts/upscale.py generated/toma-final.mp4 \
+  --factor 1.5 --model Proteus --out final/hero_1080p.mp4 --budget 1.00
+```
+
+## Gotchas de generación paralela
+
+Si vas a generar varios clips (por ejemplo uno por escena) y te tienta
+lanzarlos en paralelo para ahorrar tiempo de espera: **cuidado con scripts que
+escriben a una ruta de salida fija.** Si dos llamadas paralelas descargan a
+`salida.mp4` sin importar cuál escena están generando, la segunda sobreescribe
+a la primera antes de que cada una renombre su propio resultado, y terminas
+con contenido mezclado bajo el nombre equivocado (pasó en producción — costó
+tiempo recuperar los clips correctos). `genmedia.py` ya usa nombres con sello
+de tiempo por generación y no tiene este problema; si escribes tu propio
+script de generación, dale a cada llamada un nombre de salida único desde el
+principio, o simplemente corre las generaciones una por una.
+
+## Los mismos cuatro guardas de la fase 6b aplican aquí
+
+`--budget` por corrida, confirmación explícita, descarga inmediata, y
+registro completo en `generations.jsonl`. Ve `06b-generativo.md` si no los
+has leído.

@@ -1,6 +1,6 @@
 ---
 name: video-studio
-description: End-to-end YouTube + TikTok video pipeline — plan, record, transcribe, plan the edit, cut, animate, caption and render a finished MP4. Nine resumable phases driven by state.json and edl.json. Use when the user wants to plan a video, script an outline, transcribe a recording, plan cuts, remove filler words and dead space, add motion graphics or b-roll, add word-by-word captions, reframe to 9:16, or render a final video. Triggers — "video-studio", "editar video", "plan de video", "cortar el video", "quitar silencios", "subtitulos palabra por palabra", "hacer un short", "reframe 9:16", "b-roll", "motion graphics", "render final", "edit my video", "make a short".
+description: End-to-end YouTube + TikTok video pipeline — plan, record, transcribe, plan the edit, cut, animate, caption and render a finished MP4. Also covers 100%-generated brand/sizzle videos with no real footage (AI text-to-video, cost-aware model selection, crossfade-splicing a cheap fix instead of re-generating a whole take, on-screen labels, free audio). Nine resumable phases driven by state.json and edl.json. Use when the user wants to plan a video, script an outline, transcribe a recording, plan cuts, remove filler words and dead space, add motion graphics or b-roll, add word-by-word captions, reframe to 9:16, render a final video, generate an AI video/sizzle reel from a prompt, fix one bad section of an AI-generated clip without re-generating everything, or add timed on-screen text labels. Triggers — "video-studio", "editar video", "plan de video", "cortar el video", "quitar silencios", "subtitulos palabra por palabra", "hacer un short", "reframe 9:16", "b-roll", "motion graphics", "render final", "edit my video", "make a short", "video generado con IA", "arreglar un clip generado", "empalmar un clip", "rotulos en pantalla", "que modelo de fal uso", "video de marca con IA".
 ---
 
 # Video Studio
@@ -77,6 +77,7 @@ Read `state.json` in the working directory (or the project folder the user names
 | `state.json` exists, no args | Read `phase` field, resume that phase |
 | User names a phase | Jump there, but warn if prerequisites are missing |
 | User gives a bare video file, no project | Offer: full pipeline from Phase 0, or fast path (`2 → 3 → 4 → 7 → 8`) |
+| User wants a video with no real footage at all — a prompt/storyboard only | Phase 6c directly. There is no `raw/` in this mode; skip Phases 1-2. |
 
 Load **only** the phase file you are running. Do not read all nine.
 
@@ -89,13 +90,16 @@ Load **only** the phase file you are running. Do not read all nine.
 | 4 | Assemble | `phases/04-assemble.md` | — |
 | 5 | Motion graphics | `phases/05-graphics.md` | — |
 | 6 | B-roll | `phases/06-broll.md` | — |
-| 6b | Generative media | `phases/06b-generativo.md` | **opt-in only** |
+| 6b | Generative media (isolated assets) | `phases/06b-generativo.md` | **opt-in only** |
+| 6c | Fully-generated video (no real footage) | `phases/06c-video-generado.md` | **opt-in only** |
 | 7 | Polish | `phases/07-polish.md` | ✋ approve `check.md` |
 | 8 | Final render | `phases/08-final.md` | — |
 
-Phase 6b is **optional and costs money**. Never run it unless the user asks for
-it by name. Motion graphics stay in HyperFrames (free, exact, unlimited); 6b is
-for thumbnails, short covers, and shots that neither stock nor HTML can produce.
+Phases 6b and 6c are **optional and cost money**. Never run either unless the
+user asks for it by name. Motion graphics stay in HyperFrames (free, exact,
+unlimited); 6b is for thumbnails, short covers, and shots that neither stock
+nor HTML can produce; 6c is for when there is no `raw/` at all — a whole video
+generated from a prompt/storyboard instead of edited from a recording.
 
 ## Project layout
 
@@ -145,5 +149,8 @@ Run with `python3 scripts/<name>.py --help`. All are dependency-free (stdlib + `
 | `overlay.py` | Composite graphics, b-roll and zooms onto the cut |
 | `broll.py` | Search + download from Pexels/Pixabay |
 | `genmedia.py` | **Optional, paid.** Generate images/video via kie.ai, fal.ai, wavespeed |
+| `upscale.py` | **Optional, paid.** Upscale a local video via Topaz on fal.ai |
+| `splice_insert.py` | Crossfade-splice a clip into a base video — insert new content or replace a bad span, free/local |
+| `labels_overlay.py` | Timed on-screen text labels — `drawtext` if available, PNG-overlay fallback otherwise |
 | `reframe.py` | 16:9 → 9:16 for TikTok/Shorts |
 | `render.py` | Final encode, loudness normalize, validate |

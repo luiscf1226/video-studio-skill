@@ -47,7 +47,8 @@ Each phase reads and writes one project folder, and the pipeline resumes from
 | 4 | Assemble | rough cut | |
 | 5 | Graphics | rendered motion graphics | |
 | 6 | B-roll | downloaded clips, composited | |
-| 6b | *Generative media* | *AI images/video — **optional, costs money*** | *opt-in only* |
+| 6b | *Generative media* | *AI images/video for an existing edit — **optional, costs money*** | *opt-in only* |
+| 6c | *Fully-generated video* | *no real footage at all, built from a prompt — **optional, costs money*** | *opt-in only* |
 | 7 | Polish | captions, color, music, 9:16 short | ✋ you approve |
 | 8 | Final | render, loudness, validate | |
 
@@ -89,6 +90,33 @@ JSON edit, not a code change.
 gives exact text, exact timing and exact brand colours — an animated counter
 from 0 to 10 in your own typeface is not something an image model can produce.
 Phase 6b is for photographic work only.
+
+### Phase 6c — fully-generated video (optional)
+
+For when there's no `raw/` at all — a brand or sizzle video built entirely
+from a prompt, no real footage. Full workflow in
+[`phases/06c-video-generado.md`](skills/video-studio/phases/06c-video-generado.md);
+headline numbers, so you don't have to open it just to pick a model:
+
+| Need | Model | Cost | Notes |
+|---|---|---|---|
+| Long continuous take, narrates several scenes, no cuts | `seedance-2.5` | $0.473/s @720p, $0.2205/s @480p | No native 1080p — upscale after |
+| Single short scene, native 1080p, no upscale needed | `ltx-fast` | $0.04/s @1080p | Often cheaper *in total* than 720p-gen + upscale, if the style fits |
+| Animate an existing still image | `kling` | ~$0.07/s | Most reliable image-to-video |
+| Upscale anything to 1080p after generating it cheap | `upscale.py` (Topaz) | $0.01–0.02/s of source | Usually cheaper than generating natively at high res |
+| Music / SFX | the `media-use` skill, if installed | **$0** | Free HeyGen catalog — check this before any paid audio model |
+
+Full prices (with verified/unverified flags) in `references/models.json`,
+same file phase 6b reads.
+
+**The expensive mistake this phase exists to prevent:** re-generating an
+entire 20-30s continuous take (often $10-15+) to fix one 3-4 second section
+that came out wrong. Generate a short, cheap replacement for just that span
+instead (`genmedia.py --seconds 4`, often under $2) and crossfade-splice it in
+with `splice_insert.py` — free, local, no re-generation. Same script also adds
+a *new* scene without touching what already works, and `labels_overlay.py`
+adds timed on-screen text (era cards, dates, section titles) even on a plain
+Homebrew `ffmpeg` that lacks `drawtext`.
 
 ## How the edit is represented
 
@@ -156,6 +184,9 @@ Every script is standard-library Python that shells out to `ffmpeg`/`ffprobe`/`c
 | `overlay.py` | composites local assets. No network |
 | `broll.py` | queries Pexels/Pixabay and downloads to `broll/` |
 | `genmedia.py` | **optional, paid** — posts prompts to kie.ai / fal.ai / wavespeed; reads `KIE_API_KEY`, `FAL_KEY`, `WAVESPEED_API_KEY`; enforces a spend cap |
+| `upscale.py` | **optional, paid** — upscales a local video via Topaz on fal.ai; reads `FAL_KEY`; enforces a spend cap |
+| `splice_insert.py` | crossfade-splices a clip into a base video (insert or replace-a-bad-span). Free, local, no network |
+| `labels_overlay.py` | timed on-screen text labels; `drawtext` if available, PNG-overlay fallback otherwise. No network |
 | `reframe.py`, `render.py` | local ffmpeg only |
 | `fftool.py` | capability detection; no writes |
 
