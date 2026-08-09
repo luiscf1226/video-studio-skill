@@ -112,7 +112,9 @@ headline numbers, so you don't have to open it just to pick a model:
 | Music / SFX | the `media-use` skill, if installed | **$0** | Free HeyGen catalog — check this before any paid audio model |
 
 Full prices (with verified/unverified flags) in `references/models.json`,
-same file phase 6b reads.
+same file phase 6b reads. For the full, always-current fal.ai catalog (new
+models land there before anyone adds them here) —
+[fal.ai/explore/search?categories=text-to-video](https://fal.ai/explore/search?categories=text-to-video).
 
 **The expensive mistake this phase exists to prevent:** re-generating an
 entire 20-30s continuous take (often $10-15+) to fix one 3-4 second section
@@ -122,6 +124,74 @@ with `splice_insert.py` — free, local, no re-generation. Same script also adds
 a *new* scene without touching what already works, and `labels_overlay.py`
 adds timed on-screen text (era cards, dates, section titles) even on a plain
 Homebrew `ffmpeg` that lacks `drawtext`.
+
+### Quickstart — generating a video from scratch, no recording involved
+
+This walks through phase 6c end to end: no `state.json`, no project folder,
+no other phase. Just the four scripts, called directly, on plain files.
+
+**1. How it fits together.** The skill is just files Claude reads: `SKILL.md`
+tells it which phase file to open for a given request; the phase file
+(`phases/06c-video-generado.md`) is the how-to in plain language;
+`references/models.json` is the price catalog; `scripts/*.py` are the actual
+tools that do the work. Nothing here is a service or a server — every script
+takes file paths in and writes file paths out.
+
+**2. How the scripts use Python.** All four are dependency-free — standard
+library only (`argparse`, `json`, `subprocess`), no `pip install` anything.
+The actual work is delegated to `curl` (talking to fal.ai) and `ffmpeg`
+(everything video/audio). That's why they run on any machine with Python 3 +
+ffmpeg, with nothing extra to set up.
+
+**3. The example flow.**
+
+```bash
+export FAL_KEY='...'   # from fal.ai/dashboard/keys
+
+# a) generate a base clip. --budget is a hard cap, and it asks for
+#    confirmation before spending anything.
+python3 skills/video-studio/scripts/genmedia.py \
+  "cinematic shot of hands warming over a campfire, dark cave at night" \
+  --model seedance-2.5 --seconds 8 --budget 5.00 --outdir generated
+
+# b) not happy with 3-4 seconds of it? don't re-run (a) and pay again for the
+#    whole clip -- generate a short, cheap replacement for just that span...
+python3 skills/video-studio/scripts/genmedia.py \
+  "same shot, but no face visible, hands and fire only" \
+  --model seedance-2.5 --seconds 4 --budget 2.00 --outdir generated
+
+# ...and splice it in with a crossfade. free, local, no API call.
+python3 skills/video-studio/scripts/splice_insert.py \
+  generated/20260101-000000-seedance-2.5-1.mp4 \
+  generated/20260101-000100-seedance-2.5-1.mp4 \
+  --at 0 --until 3.75 --crossfade 0.6 \
+  --out generated/fixed.mp4
+
+# c) add on-screen text -- works even if this machine's ffmpeg lacks
+#    drawtext (falls back automatically, see labels_overlay.py --check)
+cat > cues.json <<'JSON'
+[{"text": "~10,000 BCE", "start": 0, "end": 4}]
+JSON
+python3 skills/video-studio/scripts/labels_overlay.py \
+  generated/fixed.mp4 cues.json --out generated/labeled.mp4
+
+# d) upscale at the end, not the start -- cheaper than generating high-res
+#    natively (see the cost table above)
+python3 skills/video-studio/scripts/upscale.py \
+  generated/labeled.mp4 --factor 1.5 --model Proteus \
+  --out final/video_1080p.mp4 --budget 1.00
+```
+
+Every generation call logs its prompt, model, provider, cost and output path
+to `generated/generations.jsonl` — open `generated/index.html` any time to
+see everything you've made so far, with running total spent.
+
+**In an agent session** (Claude Code or similar), you don't type these
+commands yourself — you just describe what you want ("make me a 20s brand
+video about X", "that middle section looks wrong, fix just that part", "add a
+year label in the corner") and the agent reads `06c-video-generado.md`, picks
+the right script and flags, and shows you the cost estimate before spending
+anything.
 
 ## How the edit is represented
 
