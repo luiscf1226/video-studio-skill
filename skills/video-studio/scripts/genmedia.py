@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Genera imagenes y videos con modelos de pago por uso. PASO OPCIONAL.
+"""Genera imagenes, video Y AUDIO (musica/SFX) con modelos de pago por uso. PASO OPCIONAL.
+
+Un solo script para los tres tipos -- el "tipo" de cada modelo en
+references/models.json (imagen / video / audio) decide que parametros manda
+y con que extension guarda el archivo. Anadir un modelo nuevo de cualquiera
+de los tres tipos es editar ese JSON, no este codigo.
 
 Rutea al proveedor mas barato que tenga el modelo (kie.ai -> fal.ai -> wavespeed),
 baja el resultado al disco de inmediato, y deja registro de cada prompt y cada
@@ -9,8 +14,18 @@ NUNCA gasta sin confirmacion: siempre imprime el costo estimado y exige --yes.
 El tope de --budget se comprueba ANTES de cada llamada.
 
   python3 genmedia.py --list
+
+  # imagen
   python3 genmedia.py "miniatura: laptop con presentacion 3D naranja" --model gpt-image-2 --n 3 --budget 0.30
+
+  # video (imagen a video)
   python3 genmedia.py "camara acercandose al grafico" --model kling --seconds 5 --image ref.png --budget 0.50
+
+  # audio -- SOLO si la skill 'media-use' (catalogo gratis de HeyGen) no esta
+  # disponible; ese catalogo gratis es casi siempre la mejor opcion primero
+  python3 genmedia.py "musica cinematografica suave, piano y cuerdas, animo esperanzador" \\
+      --model minimax-music --budget 0.10
+
   python3 genmedia.py --gallery
 """
 import argparse
@@ -195,9 +210,13 @@ def galeria(outdir):
     for f in filas:
         for ruta in f.get("archivos", []):
             nombre = pathlib.Path(ruta).name
-            es_video = pathlib.Path(ruta).suffix.lower() in (".mp4", ".webm", ".mov")
-            medio = (f'<video src="{nombre}" controls loop muted></video>' if es_video
-                     else f'<img src="{nombre}" loading="lazy">')
+            suf = pathlib.Path(ruta).suffix.lower()
+            if suf in (".mp4", ".webm", ".mov"):
+                medio = f'<video src="{nombre}" controls loop muted></video>'
+            elif suf in (".mp3", ".wav", ".m4a", ".ogg"):
+                medio = f'<audio src="{nombre}" controls></audio>'
+            else:
+                medio = f'<img src="{nombre}" loading="lazy">'
             tarjetas.append(f"""<figure>
   {medio}
   <figcaption>
@@ -283,7 +302,9 @@ def main():
             print(f"  {prov:<12} export {env}='...'", file=sys.stderr)
         sys.exit(1)
 
-    es_video = modelo["tipo"] == "video"
+    tipo = modelo["tipo"]
+    es_video = tipo == "video"
+    es_audio = tipo == "audio"
     unidades = args.seconds if es_video else 1
     mejor = listas[0]
     costo_unit = mejor["cost_usd"] * unidades
@@ -314,7 +335,7 @@ def main():
             sys.exit("Cancelado. No se gasto nada.")
 
     sello = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    ext = ".mp4" if es_video else ".png"
+    ext = ".mp4" if es_video else (".mp3" if es_audio else ".png")
     creados, gasto_real = [], 0.0
 
     for i in range(args.n):
@@ -334,7 +355,10 @@ def main():
             entrada["prompt"] = args.prompt
             if es_video:
                 entrada["duration"] = args.seconds
-            else:
+            elif not es_audio:
+                # aspect_ratio es un parametro de imagen; los modelos de audio
+                # (musica/SFX) no lo aceptan y algunos rechazan el request si
+                # llega un campo que no esperan.
                 entrada.setdefault("aspect_ratio", args.aspect)
             if args.image:
                 ruta = pathlib.Path(args.image)

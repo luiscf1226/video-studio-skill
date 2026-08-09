@@ -83,7 +83,7 @@ esta fase, no porque cada uno dependa del anterior. `splice_insert.py`,
 `labels_overlay.py` y `upscale.py` funcionan sobre CUALQUIER archivo de video
 — generado con `genmedia.py`, grabado, descargado, o de otro pipeline
 completamente distinto. Si lo unico que necesitas es empalmar dos clips que ya
-tienes, saltate directo al paso 2 y usa `splice_insert.py` solo.
+tienes, saltate directo al paso 3 y usa `splice_insert.py` solo.
 
 ### 1. Genera la toma base
 
@@ -103,9 +103,34 @@ generar. Los filtros de copyright de los modelos (ByteDance, entre otros)
 rechazan la salida si reconocen una marca — no se cobra el rechazo, pero
 perdiste tiempo. Todo lo que necesite ser exacto (logo, texto de UI, colores
 de marca) se compone DESPUÉS, sobre metraje generado que es solo geometría
-abstracta. Ve el punto 3.
+abstracta. Ve el punto 4.
 
-### 2. Si un tramo salió mal: clip corto + `splice_insert.py`, no regenerar todo
+### 2. Imágenes (miniaturas, fondos, fotogramas de referencia)
+
+El mismo `genmedia.py` genera imágenes, no solo video — es el mismo script,
+el `"tipo": "imagen"` del modelo en `models.json` decide los parámetros. Útil
+para tres cosas dentro de este flujo:
+
+```bash
+# una imagen fija para animar despues con un modelo imagen-a-video (kling, etc.)
+python3 $SKILL/scripts/genmedia.py \
+  "retrato fotorrealista de un artesano romano en un mercado antiguo" \
+  --model seedream --n 3 --budget 0.15 --outdir generated
+
+# fondo o textura para componer detras de un grafico (ver punto 4)
+python3 $SKILL/scripts/genmedia.py \
+  "textura abstracta azul marino, geometrica, minimalista" \
+  --model flux --budget 0.05 --outdir generated
+```
+
+`gpt-image-2` es el mejor de los cinco modelos de imagen del catálogo para
+texto LEGIBLE dentro de la imagen (miniaturas con título); el resto
+(`nano-banana`, `nano-banana-pro`, `flux`, `seedream`) son más baratos y
+mejores para estilo/composición que para texto. Ve la fase 6b
+(`06b-generativo.md`) si lo que necesitas es solo una imagen suelta, sin nada
+de video alrededor — ese es su caso de uso exacto.
+
+### 3. Si un tramo salió mal: clip corto + `splice_insert.py`, no regenerar todo
 
 ```bash
 # genera solo el reemplazo (4s, mismo estilo, prompt mas especifico para ese tramo)
@@ -125,7 +150,7 @@ en lugar de sustituir un tramo. Lee el docstring de `splice_insert.py` para la
 matemática exacta de duración (por qué el punto de corte y el offset del
 crossfade deben coincidir para que no se repita ni se pierda contenido).
 
-### 3. Compón la marca real encima de la geometría abstracta
+### 4. Compón la marca real encima de la geometría abstracta
 
 Si le pediste al modelo una pantalla de teléfono / laptop como "solo
 geometría abstracta, sin texto, sin logos" (que es lo que hay que pedirle,
@@ -148,7 +173,7 @@ ir tu UI real. Dos formas de resolverlo, de más a menos esfuerzo:
   de por medio. Mucho menos trabajo, y es donde SÍ importa que el texto/logo
   salga exacto.
 
-### 4. Rótulos en pantalla (año, época, nombre de sección, lo que sea)
+### 5. Rótulos en pantalla (año, época, nombre de sección, lo que sea)
 
 ```bash
 python3 $SKILL/scripts/labels_overlay.py video.mp4 cues.json --out labeled.mp4
@@ -164,7 +189,7 @@ si encadenas un overlay por etiqueta (encadenar N overlays con fundido tomó
 tomó menos de un minuto). El script ya hace esto bien; no lo reimplementes
 peor.
 
-### 5. Audio
+### 6. Audio
 
 Si tienes la skill `media-use` instalada, úsala — su catálogo gratis de
 HeyGen (OAuth, sin tarjeta) da música y SFX reales sin costo, y ya sabe
@@ -172,11 +197,21 @@ mezclar capas (cama musical + SFX por escena) con `ffmpeg`. Es virtualmente
 siempre la opción correcta antes de considerar generación de audio de pago.
 
 Solo si esa skill no está disponible y necesitas algo muy específico que su
-catálogo no tenga, `minimax-music` en `models.json` es la opción de pago más
-barata encontrada (~$0.03/generación) — pero es la excepción, no el punto de
-partida.
+catálogo no tenga, `genmedia.py` también genera audio — otra vez el mismo
+script, `"tipo": "audio"` en `models.json`:
 
-### 6. Sube la resolución al final, no al principio
+```bash
+python3 $SKILL/scripts/genmedia.py \
+  "musica cinematografica suave, piano y cuerdas, animo esperanzador, sin voz" \
+  --model minimax-music --budget 0.10 --outdir generated
+```
+
+`minimax-music` (~$0.03/generación) es la opción de pago más barata
+encontrada — pero es la excepción, no el punto de partida. El archivo se
+guarda como `.mp3` en `generated/` igual que las imágenes y videos, con su
+propio registro en `generations.jsonl`.
+
+### 7. Sube la resolución al final, no al principio
 
 ```bash
 python3 $SKILL/scripts/upscale.py generated/toma-final.mp4 \
