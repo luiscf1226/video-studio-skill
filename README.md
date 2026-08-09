@@ -112,7 +112,9 @@ headline numbers, so you don't have to open it just to pick a model:
 | Music / SFX | the `media-use` skill, if installed | **$0** | Free HeyGen catalog — check this before any paid audio model |
 
 Full prices (with verified/unverified flags) in `references/models.json`,
-same file phase 6b reads.
+same file phase 6b reads. For the full, always-current fal.ai catalog (new
+models land there before anyone adds them here) —
+[fal.ai/explore/search?categories=text-to-video](https://fal.ai/explore/search?categories=text-to-video).
 
 **The expensive mistake this phase exists to prevent:** re-generating an
 entire 20-30s continuous take (often $10-15+) to fix one 3-4 second section

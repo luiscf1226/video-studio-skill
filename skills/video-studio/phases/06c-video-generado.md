@@ -62,6 +62,15 @@ entrada dice `verified: true` solo si el precio viene confirmado directo de
 la página del modelo en fal.ai; todo lo demás es estimación de un agregador
 de terceros y puede estar desactualizado — revísalo antes de una tanda grande.
 
+**Catálogo completo y actualizado de fal.ai (no solo lo que está en
+`models.json`):** [fal.ai/explore/search?categories=text-to-video](https://fal.ai/explore/search?categories=text-to-video).
+Ahí aparecen modelos nuevos antes de que alguien los agregue aquí, y el precio
+mostrado ahí siempre es el real — es la fuente de verdad para confirmar
+cualquier cifra de esta tabla o de `models.json`, y el primer lugar donde
+buscar si necesitas algo que no está en el catálogo (otro estilo, otra
+relación de aspecto, un modelo más nuevo). Si agregas uno al catálogo,
+verifica el precio ahí mismo antes de poner `verified: true`.
+
 **Regla práctica de ahorro:** arranca SIEMPRE con una prueba de 4-5s en 480p
 ($1-2) antes de comprometerte a la toma completa en 720p. Un prompt mal
 calibrado a $12 es un prompt mal calibrado a $2 que puedes iterar tres veces
